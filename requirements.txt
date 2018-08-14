@@ -1,0 +1,5 @@
+passlib==1.7.1
+pkg-resources==0.0.0
+PyQt5==5.11.2
+PyQt5-sip==4.19.12
+SQLAlchemy==1.2.9
