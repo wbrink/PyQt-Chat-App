@@ -65,19 +65,23 @@ class MessageWidget(QWidget, Ui_Form):
 
 
 class send_thread(QThread):
-    def __init__(self, socket, message, recipient):
+    # def __init__(self, socket, data):
+    def __init__(self, socket, message):
         self.s = socket
+        # self.message = json.dumps(data)
         self.message = message
         super().__init__()
 
     def run(self):
+
         message = bytes(self.message, 'utf8')
         self.s.send(message)
 
 
 
 class recv_thread(QThread):
-    sig = pyqtSignal(dict)
+    # sig = pyqtSignal(dict)
+    sig = pyqtSignal(str)
     sig2 = pyqtSignal(list)
     sig3 = pyqtSignal(str)
     #sig4 = pyqtSignal(dict)
@@ -104,13 +108,14 @@ class recv_thread(QThread):
                         if False in data.values():
                             username = list(data.keys())[0]
                             self.sig3.emit(username)
-                        else: # this is a legitamate message
-                            self.sig.emit(data)
-
+                        # else: # this is a legitamate message
+                        #     # format  is {username, message}
+                        #     self.sig.emit(data)
                     else: # user is trying to inject json into the app
                         raise json.decoder.JSONDecodeError # this will display the text to the screen
                 except json.decoder.JSONDecodeError:
-                    msg = packet.decode('utf8')
+                    # msg = packet.decode('utf8')
+                    msg = packet.decode('utf8') # turns bytes into str
                     self.sig.emit(msg)
 
 
@@ -128,13 +133,13 @@ class client_ui(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         # setup the messageWidget
-        number = self.stackedWidget.addWidget(MessageWidget())
+        number = self.stackedWidget.addWidget(MessageWidget()) # returns index of 0
         self.stackedWidget.setCurrentIndex(number)
 
 
         # place the focus on the textbox
         # so the cursor goes there automatically
-        self.stackedWidget.widget(number).message_textEdit.setFocus()
+        self.stackedWidget.widget(number).message_textEdit.setFocus() #index will be 0
         #self.message_textEdit.setFocus()
 
 
@@ -151,11 +156,12 @@ class client_ui(QMainWindow, Ui_MainWindow):
             self.stackedWidget.widget(number).message_view.setText("Socket Connection Failed")
             time.sleep(3)
             self.s.close()
+            print("you suck")
 
         # this should be if error the nquit and run all this anyways if not error
         if self.socket_error == False:
             self.stackedWidget.widget(number).message_view.setText("Welcome to the chat server")
-            self.s.send(bytes(self.username, 'utf8')) # server will reciev the username
+            self.s.sendall(bytes(self.username, 'utf8')) # server will reciev the username
 
             # recieving socket threads with connected signals
             self.thread_recv = recv_thread(self.s) # self.message_view)
@@ -166,22 +172,28 @@ class client_ui(QMainWindow, Ui_MainWindow):
 
         # connect signals to slots
         self.stackedWidget.widget(number).message_textEdit.returnPressed.connect(self.submit)
-        self.contacts_listWidget.itemDoubleClicked.connect(self.double_click)
+        # self.contacts_listWidget.itemDoubleClicked.connect(self.double_click)
 
 
     def double_click(self, item):
         #list_index =  self.contacts_listWidget.indexFromItem(item).row()
         user_clicked = item.text()
-        contacts = self.contacts
-        if user_clicked in contacts.values(): # then the index already exists
-            for i,k in contacts.items(): # {'index': username}
+        #contacts = self.contacts
+        if user_clicked in self.contacts.values(): # then the index already exists
+            for i,k in self.contacts.items(): # {'index': username}
                 if k == user_clicked:
                     self.stackedWidget.setCurrentIndex(i)
                     return
         index = self.stackedWidget.addWidget(MessageWidget()) # index number
-        contacts[index] = user_clicked
+        self.contacts[index] = user_clicked
+        # contacts[index] = user_clicked
         self.stackedWidget.setCurrentIndex(index)
         self.stackedWidget.widget(index).name_label.setText(user_clicked)
+
+        # connect signal to slot for new stackedWidget widget
+        self.stackedWidget.widget(index).message_textEdit.returnPressed.connect(self.submit)
+
+
 
 
     def post_users(self, users): # users is a list of strings ['username1', 'username2']
@@ -197,28 +209,43 @@ class client_ui(QMainWindow, Ui_MainWindow):
         row = self.contacts_listWidget.row(listwidgetitem)
         item =  self.contacts_listWidget.takeItem(row) # returns the item then we delete it
         del item
+        # for i,k in self.contacts.items():
+        #     if k == username:
+        #         index = i
+        #         break
+        # self.contacts.pop(index, None)
 
 
 
 
     def post_messages(self, message):
-        print(message)
-        # self.message_view.append(message)
+        self.stackedWidget.widget(0).message_view.append(message)
 
     def submit(self):
-        recipient = self.stackedWidget.currentIndex()
-        message = self.message_textEdit.toPlainText()
+        # index = self.stackedWidget.currentIndex()
+        # if index == 0: #on home screen
+        #     return
+        # recipient = self.contacts[index]
+        # #print(index)
+        message = self.stackedWidget.widget(0).message_textEdit.toPlainText()
         if self.socket_error == True:
-            return
+            # return
+            if not message.strip():
+                self.stackedWidget.widget(0).message_view.append(message)
+                return
         elif not message.strip(): # removes whitespace & if no text
             return
         elif len(message) > 200:
             print("the message is too long")
             return
         else:
-            self.thread_send = send_thread(self.s, message)
+
+            # data = {recipient: message, self.username: message}
+            # msg = f"{self.username}: {message}"
+            msg = message
+            self.thread_send = send_thread(self.s, msg)
             self.thread_send.start()
-            self.message_textEdit.clear()
+            self.stackedWidget.widget(0).message_textEdit.clear()
 
 
 
