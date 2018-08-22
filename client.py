@@ -111,10 +111,9 @@ class recv_thread(QThread):
                         # else: # this is a legitamate message
                         #     # format  is {username, message}
                         #     self.sig.emit(data)
-                    else: # user is trying to inject json into the app
+                    else: # user is trying to inject json into the app (json can't load text)
                         raise json.decoder.JSONDecodeError # this will display the text to the screen
                 except json.decoder.JSONDecodeError:
-                    # msg = packet.decode('utf8')
                     msg = packet.decode('utf8') # turns bytes into str
                     self.sig.emit(msg)
 
@@ -160,8 +159,7 @@ class client_ui(QMainWindow, Ui_MainWindow):
 
         # this should be if error the nquit and run all this anyways if not error
         if self.socket_error == False:
-            self.stackedWidget.widget(number).message_view.setText("Welcome to the chat server")
-            self.s.sendall(bytes(self.username, 'utf8')) # server will reciev the username
+            self.s.sendall(bytes(self.username, 'utf8')) # server will recieve the username
 
             # recieving socket threads with connected signals
             self.thread_recv = recv_thread(self.s) # self.message_view)
@@ -174,24 +172,23 @@ class client_ui(QMainWindow, Ui_MainWindow):
         self.stackedWidget.widget(number).message_textEdit.returnPressed.connect(self.submit)
         # self.contacts_listWidget.itemDoubleClicked.connect(self.double_click)
 
-
-    def double_click(self, item):
-        #list_index =  self.contacts_listWidget.indexFromItem(item).row()
-        user_clicked = item.text()
-        #contacts = self.contacts
-        if user_clicked in self.contacts.values(): # then the index already exists
-            for i,k in self.contacts.items(): # {'index': username}
-                if k == user_clicked:
-                    self.stackedWidget.setCurrentIndex(i)
-                    return
-        index = self.stackedWidget.addWidget(MessageWidget()) # index number
-        self.contacts[index] = user_clicked
-        # contacts[index] = user_clicked
-        self.stackedWidget.setCurrentIndex(index)
-        self.stackedWidget.widget(index).name_label.setText(user_clicked)
-
-        # connect signal to slot for new stackedWidget widget
-        self.stackedWidget.widget(index).message_textEdit.returnPressed.connect(self.submit)
+    # not doing private messages
+    # def double_click(self, item):
+    #     user_clicked = item.text()
+    #     #contacts = self.contacts
+    #     if user_clicked in self.contacts.values(): # then the index already exists
+    #         for i,k in self.contacts.items(): # {'index': username}
+    #             if k == user_clicked:
+    #                 self.stackedWidget.setCurrentIndex(i)
+    #                 return
+    #     index = self.stackedWidget.addWidget(MessageWidget()) # index number
+    #     self.contacts[index] = user_clicked
+    #     # contacts[index] = user_clicked
+    #     self.stackedWidget.setCurrentIndex(index)
+    #     self.stackedWidget.widget(index).name_label.setText(user_clicked)
+    #
+    #     # connect signal to slot for new stackedWidget widget
+    #     self.stackedWidget.widget(index).message_textEdit.returnPressed.connect(self.submit)
 
 
 
@@ -209,24 +206,61 @@ class client_ui(QMainWindow, Ui_MainWindow):
         row = self.contacts_listWidget.row(listwidgetitem)
         item =  self.contacts_listWidget.takeItem(row) # returns the item then we delete it
         del item
-        # for i,k in self.contacts.items():
-        #     if k == username:
-        #         index = i
-        #         break
-        # self.contacts.pop(index, None)
 
 
-
-
+    # max len of message can be 93*3 = 279
     def post_messages(self, message):
-        self.stackedWidget.widget(0).message_view.append(message)
+        # tyring to format the text not worth it
+        #
+        # MAX_LEN = 93
+        # if len(message) > MAX_LEN and len(message) < 186:
+        #     # 93 is the cutoff for the next line in qtextedit assuming monospace font
+        #     """if the message[94] (one after the cutoff to the next line)
+        #         is not a space then then the word that message[93] is apart of
+        #         should go to the next line
+        #     """
+        #     if message[MAX_LEN-2].isspace() and message[MAX_LEN].isspace(): # one letter word
+        #         # then the cutoff letter93 or message[92] is a one letter word
+        #         m1 = message[:MAX_LEN].strip() # message[0 to 92]
+        #         self.stackedWidget.widget(0).message_view.append(m1)
+        #         string = ' ' * 22
+        #         m2 = string + message[MAX_LEN:].strip()
+        #         self.stackedWidget.widget(0).message_view.append(m2)
+        #
+        #
+        #     elif message[MAX_LEN-1].isalnum() and message[MAX_LEN].isalnum(): # at least 2 letter word
+        #         index = MAX_LEN-2
+        #         while True:
+        #             if message[index].isspace(): # if was 2 letter word
+        #                 m1 = message[:index].strip()
+        #                 self.stackedWidget.widget(0).message_view.append(m1)
+        #                 string = ' ' * 22
+        #                 m2 = string + message[index:].strip()
+        #                 self.stackedWidget.widget(0).message_view.append(m2)
+        #                 return
+        #             else:
+        #                 index = index - 1
+        #
+        #     else: # there is a space that matches perfectly with the end
+        #         m1 = message[:MAX_LEN].strip()
+        #         self.stackedWidget.widget(0).message_view.append(m1)
+        #         string = ' ' * 22
+        #         m2 = string + message[MAX_LEN:].strip()
+        #         self.stackedWidget.widget(0).message_view.append(m2)
+        #
+        # else:
+        #     if len(message) >186:
+        #         print('it got here')
+        #     self.stackedWidget.widget(0).message_view.append(message)
 
+
+        # incase the above spacing is not worth it
+        self.stackedWidget.widget(0).message_view.append(message)
+        print(message)
+
+
+    # sending text in textedit to the send thread which sends to Server
     def submit(self):
-        # index = self.stackedWidget.currentIndex()
-        # if index == 0: #on home screen
-        #     return
-        # recipient = self.contacts[index]
-        # #print(index)
         message = self.stackedWidget.widget(0).message_textEdit.toPlainText()
         if self.socket_error == True:
             # return
@@ -239,10 +273,7 @@ class client_ui(QMainWindow, Ui_MainWindow):
             print("the message is too long")
             return
         else:
-
-            # data = {recipient: message, self.username: message}
-            # msg = f"{self.username}: {message}"
-            msg = message
+            msg = message.strip()
             self.thread_send = send_thread(self.s, msg)
             self.thread_send.start()
             self.stackedWidget.widget(0).message_textEdit.clear()

@@ -32,8 +32,6 @@ class Server():
             username = clientsocket.recv(1024).decode('utf8')
 
             self.connections_dict[username] = clientsocket
-            #print(self.connections_dict)
-
 
             print(f'{username} on {address} connected')
 
@@ -55,39 +53,37 @@ class Server():
             if not data: # then socket is closed and person left
                 print(username, "has disconnected")
                 self.connections_dict.pop(username, None)
-                msg = f'[{time_recieved}] *: {username} has left the chat'
-                for connection in self.connections_dict.values():
-                    alert = {username : False} # then person has left chat
-                    #connection.send(bytes("{} has left the chat".format(username), 'utf8'))
+                name_fmt = '*'.rjust(10)
+                msg = f'[{time_recieved}]{name_fmt}: {username} has left the chat'
+                # msg = f'[{time_recieved}] *:  {username} has left the chat'
 
+                alert = {username : False} # then person has left chat
+                for connection in self.connections_dict.values():
                     connection.sendall(bytes(json.dumps(alert), 'utf8'))
                     time.sleep(.1) # need break or else both merge together
                     connection.sendall(bytes(msg, 'utf8'))
-
                 clientsocket.close()
                 break
             else: # then messages will be sent
-                # dictionary = {}
-                # post = json.loads(data) # format {username: message}
-                # if isinstance(post, (dict,)):
-                #     for usrnm, msg in post.items(): # {username: message, etc.}
-                #         connection = self.connections_dict[usrnm]
                 msg = data.decode('utf8')
-                if len(msg) > 200: # check in case gets past client code
-                    msg = f"{time_recieved} *: Keep messages under 200 characters"
+                if len(msg) > 200: # too long a message
+                    name_fmt = '*'.rjust(10)
+                    msg = f"[{time_recieved}]{name_fmt}: Keep messages under 200 characters"
+                    # msg = f"[{time_recieved}] *:  Keep messages under 200 characters
                     for connection in self.connections_dict.values():
+                    # for connection in self.connections:
                         connection.sendall(bytes(msg, 'utf8'))
                 else: # send message
-                    msg = f"[{time_recieved}] {username}: {msg}"
-                    for connection in self.connections_dict.values():
-                        # if connection == clientsocket:
-                        #     msg = '<html><font color="red">{}:</font> {}</html>'.format(username, msg)
-                        # else:
-                        #     msg = '<html><font color="blue">{}:</font> {}</html>'.format(username, msg)
-                        # dictionary[usrnm] = msg
-                        # connection.send(bytes(json.dumps(dictionary), 'utf8')) # send dict over
+                    # name_fmt = f'{username}'.rjust(10)
+                    # msg = f"[{time_recieved}]{name_fmt}: {msg}"
+                    # # msg = f"[{time_recieved}]  {username}:  {msg}"
+                    for connection in list(self.connections_dict.values()):
+                        if connection == clientsocket:
+                            message = f"<html>[{time_recieved}] <font color='red'>{username}: </font>{msg}</html>"
+                        else:
+                            message = f"<html>[{time_recieved}] <font color='blue'>{username}: </font>{msg}</html>"
 
-                        connection.sendall(bytes(msg,'utf8'))
+                        connection.sendall(bytes(message,'utf8'))
 
     # for every new connection notify that the person has joined the chat
     def new_connection(self, username):
@@ -95,7 +91,9 @@ class Server():
         for connection in self.connections_dict.values():
             connection.sendall(bytes(json.dumps(list(self.connections_dict.keys())), 'utf8'))
             time.sleep(.1)
-            msg = f'[{time_recieved}] *: {username} has joined the chat'
+            name_fmt = '*'.rjust(10)
+            msg = f'[{time_recieved}]{name_fmt}: {username} has joined the chat'
+            # msg = f'[{time_recieved}]{name_fmt}:  {username} has joined the chat'
             connection.sendall(bytes(msg, 'utf8'))
 
 

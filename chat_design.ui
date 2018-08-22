@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>755</width>
-    <height>492</height>
+    <width>925</width>
+    <height>525</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,8 +19,8 @@
      <rect>
       <x>10</x>
       <y>30</y>
-      <width>181</width>
-      <height>401</height>
+      <width>161</width>
+      <height>441</height>
      </rect>
     </property>
     <property name="frameShape">
@@ -30,10 +30,10 @@
    <widget class="QStackedWidget" name="stackedWidget">
     <property name="geometry">
      <rect>
-      <x>220</x>
+      <x>190</x>
       <y>10</y>
-      <width>511</width>
-      <height>431</height>
+      <width>721</width>
+      <height>461</height>
      </rect>
     </property>
     <property name="currentIndex">
@@ -46,7 +46,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>755</width>
+     <width>925</width>
      <height>22</height>
     </rect>
    </property>
