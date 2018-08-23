@@ -118,6 +118,8 @@ class user_interface(QMainWindow, Ui_MainWindow):
             self.register_message.setText("All fields must be filled")
         elif ':' in self.register_username_lineEdit.text(): #if colon in username
             self.register_message.setText("Cannot place ':' in username")
+        elif ' ' in self.register_username_lineEdit.text(): #if space is in username
+            self.register_message.setText("Cannot place spaces in username")
         elif self.register_name_lineEdit.text() == '':
             self.register_message.setText("All fields must be filled")
         elif self.register_password_lineEdit.text() == '': # if empty

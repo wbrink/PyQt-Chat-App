@@ -27,13 +27,19 @@ class Ui_MainWindow(object):
         self.menubar.setObjectName("menubar")
         self.menuAdd_Contact = QtWidgets.QMenu(self.menubar)
         self.menuAdd_Contact.setObjectName("menuAdd_Contact")
+        self.menuhello = QtWidgets.QMenu(self.menubar)
+        self.menuhello.setObjectName("menuhello")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
         self.actionNew_Contact = QtWidgets.QAction(MainWindow)
         self.actionNew_Contact.setObjectName("actionNew_Contact")
+        self.actionColors = QtWidgets.QAction(MainWindow)
+        self.actionColors.setObjectName("actionColors")
         self.menuAdd_Contact.addAction(self.actionNew_Contact)
+        self.menuhello.addAction(self.actionColors)
+        self.menubar.addAction(self.menuhello.menuAction())
         self.menubar.addAction(self.menuAdd_Contact.menuAction())
 
         self.retranslateUi(MainWindow)
@@ -44,5 +50,7 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.menuAdd_Contact.setTitle(_translate("MainWindow", "Contact"))
+        self.menuhello.setTitle(_translate("MainWindow", "Customize"))
         self.actionNew_Contact.setText(_translate("MainWindow", "New Contact"))
+        self.actionColors.setText(_translate("MainWindow", "Colors"))
 

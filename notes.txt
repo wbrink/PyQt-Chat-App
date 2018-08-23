@@ -1,0 +1,2 @@
+want the user to be able to customize their own text and how it appears
+handle the colors in the send thread and send that html text to server to dish out 

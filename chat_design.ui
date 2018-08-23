@@ -56,12 +56,24 @@
     </property>
     <addaction name="actionNew_Contact"/>
    </widget>
+   <widget class="QMenu" name="menuhello">
+    <property name="title">
+     <string>Customize</string>
+    </property>
+    <addaction name="actionColors"/>
+   </widget>
+   <addaction name="menuhello"/>
    <addaction name="menuAdd_Contact"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionNew_Contact">
    <property name="text">
     <string>New Contact</string>
+   </property>
+  </action>
+  <action name="actionColors">
+   <property name="text">
+    <string>Colors</string>
    </property>
   </action>
  </widget>
