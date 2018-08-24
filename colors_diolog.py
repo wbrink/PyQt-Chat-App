@@ -11,13 +11,13 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(281, 146)
+        Dialog.resize(279, 170)
         self.formLayoutWidget = QtWidgets.QWidget(Dialog)
-        self.formLayoutWidget.setGeometry(QtCore.QRect(9, 9, 261, 131))
+        self.formLayoutWidget.setGeometry(QtCore.QRect(9, 9, 261, 111))
         self.formLayoutWidget.setObjectName("formLayoutWidget")
         self.formLayout = QtWidgets.QFormLayout(self.formLayoutWidget)
         self.formLayout.setContentsMargins(0, 0, 0, 0)
-        self.formLayout.setVerticalSpacing(20)
+        self.formLayout.setVerticalSpacing(13)
         self.formLayout.setObjectName("formLayout")
         self.label = QtWidgets.QLabel(self.formLayoutWidget)
         self.label.setObjectName("label")
@@ -37,6 +37,10 @@ class Ui_Dialog(object):
         self.message_comboBox = QtWidgets.QComboBox(self.formLayoutWidget)
         self.message_comboBox.setObjectName("message_comboBox")
         self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.message_comboBox)
+        self.colors_buttonBox = QtWidgets.QDialogButtonBox(Dialog)
+        self.colors_buttonBox.setGeometry(QtCore.QRect(100, 130, 166, 25))
+        self.colors_buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.colors_buttonBox.setObjectName("colors_buttonBox")
 
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)

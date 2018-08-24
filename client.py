@@ -14,6 +14,8 @@ from chat_design import Ui_MainWindow
 from message_window import Ui_Form
 from colors_diolog import Ui_Dialog
 
+from colors import colors_ui
+
 #from sqlalchemy import create_engine
 #from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
@@ -53,14 +55,6 @@ import time
 #     yield session
 #     session.close()
 # #=========================================
-
-
-class colors_ui(QDialog, Ui_Dialog):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
-
-
 
 
 class MessageWidget(QWidget, Ui_Form):
@@ -128,10 +122,10 @@ class client_ui(QMainWindow, Ui_MainWindow):
     online_users_sig = pyqtSignal(list)
     contacts = {}
 
-    # colors for customization
-    time_color = "green"
-    username_color = "green"
-    message_color = "green"
+    # colors for customization will change depending on when the user changes color
+    time_color = "burlywood"
+    username_color = "darkmagenta"
+    message_color = "fuchsia"
 
     def __init__(self, my_username):
         super().__init__() # this runs Qmainwindows __init__ method
@@ -203,7 +197,7 @@ class client_ui(QMainWindow, Ui_MainWindow):
 
 
     def show_colors_dialog(self):
-        self.customize = colors_ui()
+        self.customize = colors_ui(client_ui.time_color, client_ui.username_color, client_ui.message_color)
         self.customize.show()
 
     def post_users(self, users): # users is a list of strings ['username1', 'username2']

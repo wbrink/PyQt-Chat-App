@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>281</width>
-    <height>146</height>
+    <width>279</width>
+    <height>170</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,12 +19,12 @@
      <x>9</x>
      <y>9</y>
      <width>261</width>
-     <height>131</height>
+     <height>111</height>
     </rect>
    </property>
    <layout class="QFormLayout" name="formLayout">
     <property name="verticalSpacing">
-     <number>20</number>
+     <number>13</number>
     </property>
     <item row="0" column="0">
      <widget class="QLabel" name="label">
@@ -57,6 +57,19 @@
      <widget class="QComboBox" name="message_comboBox"/>
     </item>
    </layout>
+  </widget>
+  <widget class="QDialogButtonBox" name="colors_buttonBox">
+   <property name="geometry">
+    <rect>
+     <x>100</x>
+     <y>130</y>
+     <width>166</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <property name="standardButtons">
+    <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+   </property>
   </widget>
  </widget>
  <resources/>
