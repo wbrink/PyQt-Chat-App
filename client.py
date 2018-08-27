@@ -4,10 +4,11 @@ from PyQt5.QtWidgets import QMainWindow, QDialog, QWidget, QApplication, QTableW
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QThread
 from PyQt5.QtCore import Qt, pyqtSignal
-import pickle
+
+import configparser
 import json
 
-# need to convert listwidget to textedit
+
 
 # pyuic5 design code for UI
 from chat_design import Ui_MainWindow
@@ -123,9 +124,14 @@ class client_ui(QMainWindow, Ui_MainWindow):
     contacts = {}
 
     # colors for customization will change depending on when the user changes color
-    time_color = "burlywood"
-    username_color = "darkmagenta"
-    message_color = "fuchsia"
+    config = configparser.ConfigParser()
+    config.read("chat.ini")
+
+
+    time_color = config['Colors']['time_color']
+    username_color = config['Colors']['username_color']
+    message_color = config['Colors']['message_color']
+    background_color = config['Colors']['background_color']
 
     def __init__(self, my_username):
         super().__init__() # this runs Qmainwindows __init__ method
@@ -133,6 +139,9 @@ class client_ui(QMainWindow, Ui_MainWindow):
 
         # setup the user interface from Designer
         self.setupUi(self)
+
+        # setup the colors dialog
+        self.customize_colors = colors_ui(client_ui.time_color, client_ui.username_color, client_ui.message_color, client_ui.background_color)
 
         # setup the messageWidget
         number = self.stackedWidget.addWidget(MessageWidget()) # returns index of 0
@@ -173,6 +182,10 @@ class client_ui(QMainWindow, Ui_MainWindow):
             self.thread_recv.sig2.connect(self.post_users)
             self.thread_recv.sig3.connect(self.remove_users)
 
+        # colors_dialog connected signal
+        self.customize_colors.sig_colors.connect(self.change_colors)
+
+
         # connect signals to slots
         self.stackedWidget.widget(number).message_textEdit.returnPressed.connect(self.submit)
         # self.contacts_listWidget.itemDoubleClicked.connect(self.double_click)
@@ -195,10 +208,15 @@ class client_ui(QMainWindow, Ui_MainWindow):
     #     # connect signal to slot for new stackedWidget widget
     #     self.stackedWidget.widget(index).message_textEdit.returnPressed.connect(self.submit)
 
+    def change_colors(self, colors_list):
+        client_ui.time_color = colors_list[0]
+        client_ui.username_color = colors_list[1]
+        client_ui.message_color = colors_list[2]
+        client_ui.background_color = colors_list[3]
 
     def show_colors_dialog(self):
-        self.customize = colors_ui(client_ui.time_color, client_ui.username_color, client_ui.message_color)
-        self.customize.show()
+        self.customize_colors.show()
+
 
     def post_users(self, users): # users is a list of strings ['username1', 'username2']
         #contacts = self.contacts # get the dictionary ready
@@ -279,7 +297,7 @@ class client_ui(QMainWindow, Ui_MainWindow):
             return
         else:
             msg = message.strip()
-            colors = ' '.join([client_ui.time_color, client_ui.username_color, client_ui.message_color])
+            colors = ' '.join([client_ui.time_color, client_ui.username_color, client_ui.message_color, client_ui.background_color])
             msg = ' '.join([colors, msg]) # format = 'timecolor namecolor msgcolor message'
             self.thread_send = send_thread(self.s, msg)
             self.thread_send.start()

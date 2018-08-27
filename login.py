@@ -10,6 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 
+
 # from sqlalchemy model created
 from model import Base, User
 from client import client_ui

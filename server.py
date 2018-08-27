@@ -75,29 +75,14 @@ class Server():
                     # for connection in self.connections:
                         connection.sendall(bytes(msg, 'utf8'))
                 else: # send message
-                    # name_fmt = f'{username}'.rjust(10)
-                    # msg = f"[{time_recieved}]{name_fmt}: {msg}"
-                    # # msg = f"[{time_recieved}]  {username}:  {msg}"
-
-                    # format of msg is "time_color name_color msg_color msg"
                     message = msg.split() # split on whitespace
                     time_color = message[0]
                     username_color = message[1]
                     msg_color = message[2]
-                    msg = ' '.join(message[3:])
+                    background_color = message[3]
+                    msg = ' '.join(message[4:])
                     for connection in list(self.connections_dict.values()):
-                        # message = f"[{time_recieved}] {username}: {msg}"
-                        message = f"<html><font color='{time_color}'>[{time_recieved}] </font><font color='{username_color}'>{username}: </font><font color='{msg_color}'>{msg}</font></html>"
-
-
-
-
-
-                        # if connection == clientsocket:
-                        #     message = f"<html>[{time_recieved}] <font color='red'>{username}: </font>{msg}</html>"
-                        # else:
-                        #     message = f"<html>[{time_recieved}] <font color='blue'>{username}: </font>{msg}</html>"
-
+                        message = f"<html><span style='background-color:{background_color}'><font color='{time_color}'>[{time_recieved}] </font><font color='{username_color}'>{username}: </font><font color='{msg_color}'>{msg}</font></span></html>"
                         connection.sendall(bytes(message,'utf8'))
 
     # for every new connection notify that the person has joined the chat
@@ -109,6 +94,7 @@ class Server():
             name_fmt = '*'.rjust(10)
             msg = f'[{time_recieved}]{name_fmt}: {username} has joined the chat'
             # msg = f'[{time_recieved}]{name_fmt}:  {username} has joined the chat'
+            # if connection !=
             connection.sendall(bytes(msg, 'utf8'))
 
 

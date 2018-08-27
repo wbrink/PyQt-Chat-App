@@ -11,9 +11,9 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(279, 170)
+        Dialog.resize(280, 191)
         self.formLayoutWidget = QtWidgets.QWidget(Dialog)
-        self.formLayoutWidget.setGeometry(QtCore.QRect(9, 9, 261, 111))
+        self.formLayoutWidget.setGeometry(QtCore.QRect(9, 9, 261, 141))
         self.formLayoutWidget.setObjectName("formLayoutWidget")
         self.formLayout = QtWidgets.QFormLayout(self.formLayoutWidget)
         self.formLayout.setContentsMargins(0, 0, 0, 0)
@@ -37,8 +37,14 @@ class Ui_Dialog(object):
         self.message_comboBox = QtWidgets.QComboBox(self.formLayoutWidget)
         self.message_comboBox.setObjectName("message_comboBox")
         self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.message_comboBox)
+        self.label_4 = QtWidgets.QLabel(self.formLayoutWidget)
+        self.label_4.setObjectName("label_4")
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.label_4)
+        self.background_comboBox = QtWidgets.QComboBox(self.formLayoutWidget)
+        self.background_comboBox.setObjectName("background_comboBox")
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.background_comboBox)
         self.colors_buttonBox = QtWidgets.QDialogButtonBox(Dialog)
-        self.colors_buttonBox.setGeometry(QtCore.QRect(100, 130, 166, 25))
+        self.colors_buttonBox.setGeometry(QtCore.QRect(100, 160, 166, 25))
         self.colors_buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
         self.colors_buttonBox.setObjectName("colors_buttonBox")
 
@@ -51,4 +57,5 @@ class Ui_Dialog(object):
         self.label.setText(_translate("Dialog", "Time"))
         self.label_2.setText(_translate("Dialog", "Username"))
         self.label_3.setText(_translate("Dialog", "Message"))
+        self.label_4.setText(_translate("Dialog", "Background"))
 
