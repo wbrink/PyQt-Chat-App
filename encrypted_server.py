@@ -55,7 +55,6 @@ class Server():
                 self.connections_dict.pop(username, None)
                 name_fmt = '*'.rjust(10)
                 msg = f'[{time_recieved}]{name_fmt}: {username} has left the chat'
-                # msg = f'[{time_recieved}] *:  {username} has left the chat'
 
                 alert = {username : False} # then person has left chat
                 for connection in self.connections_dict.values():
@@ -69,26 +68,8 @@ class Server():
                 packet = data + time
                 for connection in list(self.connections_dict.values()):
                     connection.sendall(packet)
-            # else: # then messages will be sent
-            #     # message format is 'titlecolor namecolor msgcolor message' all space separated
-            #     msg = data.decode('utf8')
-            #     if len(msg) > 200: # too long a message
-            #         name_fmt = '*'.rjust(10)
-            #         msg = f"[{time_recieved}]{name_fmt}: Keep messages under 200 characters"
-            #         # msg = f"[{time_recieved}] *:  Keep messages under 200 characters
-            #         for connection in self.connections_dict.values():
-            #         # for connection in self.connections:
-            #             connection.sendall(bytes(msg, 'utf8'))
-            #     else: # send message
-            #         message = msg.split() # split on whitespace
-            #         time_color = message[0]
-            #         username_color = message[1]
-            #         msg_color = message[2]
-            #         background_color = message[3]
-            #         msg = ' '.join(message[4:])
-            #         for connection in list(self.connections_dict.values()):
-            #             message = f"<html><span style='background-color:{background_color}'><font color='{time_color}'>[{time_recieved}] </font><font color='{username_color}'>{username}: </font><font color='{msg_color}'>{msg}</font></span></html>"
-            #             connection.sendall(bytes(message,'utf8'))
+                    print(packet.decode('utf8'))
+
 
     # for every new connection notify that the person has joined the chat
     def new_connection(self, username):
@@ -100,7 +81,7 @@ class Server():
             msg = f'[{time_recieved}]{name_fmt}: {username} has joined the chat'
             # msg = f'[{time_recieved}]{name_fmt}:  {username} has joined the chat'
             # if connection !=
-            connection.sendall(bytes(msg, 'utf8'))
+            # connection.sendall(bytes(msg, 'utf8'))
 
 
 

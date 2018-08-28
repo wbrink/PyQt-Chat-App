@@ -94,9 +94,11 @@ class Encrypt():
         return token
 
     def decrypt_message(self, token):
-        message = self.f.decrypt(token)
-        return message
-
+        try:
+            message = self.f.decrypt(token)
+            return message
+        except cryptography.fernet.InvalidToken:
+            return "problem decrypting"
 
 class MessageWidget(QWidget, Ui_Form):
     def __init__(self):
@@ -112,15 +114,13 @@ class send_thread(QThread):
         super().__init__()
 
     def run(self):
-
-        # message = bytes(self.message, 'utf8')
-        self.s.send(token)
+        self.s.send(self.token)
 
 
 
 class recv_thread(QThread):
     # sig = pyqtSignal(dict)
-    sig = pyqtSignal(str)
+    sig = pyqtSignal(bytes)
     sig2 = pyqtSignal(list)
     sig3 = pyqtSignal(str)
     #sig4 = pyqtSignal(dict)
@@ -233,23 +233,6 @@ class client_ui(QMainWindow, Ui_MainWindow):
         self.stackedWidget.widget(number).message_textEdit.returnPressed.connect(self.submit)
         # self.contacts_listWidget.itemDoubleClicked.connect(self.double_click)
 
-    # not doing private messages
-    # def double_click(self, item):
-    #     user_clicked = item.text()
-    #     #contacts = self.contacts
-    #     if user_clicked in self.contacts.values(): # then the index already exists
-    #         for i,k in self.contacts.items(): # {'index': username}
-    #             if k == user_clicked:
-    #                 self.stackedWidget.setCurrentIndex(i)
-    #                 return
-    #     index = self.stackedWidget.addWidget(MessageWidget()) # index number
-    #     self.contacts[index] = user_clicked
-    #     # contacts[index] = user_clicked
-    #     self.stackedWidget.setCurrentIndex(index)
-    #     self.stackedWidget.widget(index).name_label.setText(user_clicked)
-    #
-    #     # connect signal to slot for new stackedWidget widget
-    #     self.stackedWidget.widget(index).message_textEdit.returnPressed.connect(self.submit)
 
     def change_colors(self, colors_list):
         client_ui.time_color = colors_list[0]
@@ -278,67 +261,26 @@ class client_ui(QMainWindow, Ui_MainWindow):
 
     # max len of message can be 93*3 = 279
     def post_messages(self, packet):
-        # tyring to format the text not worth it
-        #
-        # MAX_LEN = 93
-        # if len(message) > MAX_LEN and len(message) < 186:
-        #     # 93 is the cutoff for the next line in qtextedit assuming monospace font
-        #     """if the message[94] (one after the cutoff to the next line)
-        #         is not a space then then the word that message[93] is apart of
-        #         should go to the next line
-        #     """
-        #     if message[MAX_LEN-2].isspace() and message[MAX_LEN].isspace(): # one letter word
-        #         # then the cutoff letter93 or message[92] is a one letter word
-        #         m1 = message[:MAX_LEN].strip() # message[0 to 92]
-        #         self.stackedWidget.widget(0).message_view.append(m1)
-        #         string = ' ' * 22
-        #         m2 = string + message[MAX_LEN:].strip()
-        #         self.stackedWidget.widget(0).message_view.append(m2)
-        #
-        #
-        #     elif message[MAX_LEN-1].isalnum() and message[MAX_LEN].isalnum(): # at least 2 letter word
-        #         index = MAX_LEN-2
-        #         while True:
-        #             if message[index].isspace(): # if was 2 letter word
-        #                 m1 = message[:index].strip()
-        #                 self.stackedWidget.widget(0).message_view.append(m1)
-        #                 string = ' ' * 22
-        #                 m2 = string + message[index:].strip()
-        #                 self.stackedWidget.widget(0).message_view.append(m2)
-        #                 return
-        #             else:
-        #                 index = index - 1
-        #
-        #     else: # there is a space that matches perfectly with the end
-        #         m1 = message[:MAX_LEN].strip()
-        #         self.stackedWidget.widget(0).message_view.append(m1)
-        #         string = ' ' * 22
-        #         m2 = string + message[MAX_LEN:].strip()
-        #         self.stackedWidget.widget(0).message_view.append(m2)
-        #
-        # else:
-        #     if len(message) >186:
-        #         print('it got here')
-        #     self.stackedWidget.widget(0).message_view.append(message)
         timestamp = packet[-8:].decode('utf8')
         encrypted_message = packet[:-8]
 
         message = self.encryption.decrypt_message(encrypted_message)
+        if message == 'problem decrypting'
+            self.stackedWidget.widget(0).message_view.append("There was a problem decrypting the last message")
+            return
         message = message.decode('utf8')
+        message = message.strip().split()
 
+        username = message[0]
+        time_color = message[1]
+        username_color = message[2]
+        msg_color = message[3]
+        background_color = message[4]
+        msg = ' '.join(message[5:])
 
-
-        # time_color = message[0]
-        # username_color = message[1]
-        # msg_color = message[2]
-        # background_color = message[3]
-        # msg = ' '.join(message[4:])
-
-        # message = f"<html><span style='background-color:{background_color}'><font color='{time_color}'>[{time_recieved}] </font><font color='{username_color}'>{username}: </font><font color='{msg_color}'>{msg}</font></span></html>"
-
-
-
-        self.stackedWidget.widget(0).message_view.append(message)
+        # append html to the textedit
+        html = f"<html><span style='background-color:{background_color}'><font color='{time_color}'>[{timestamp}] </font><font color='{username_color}'>{username}: </font><font color='{msg_color}'>{msg}</font></span></html>"
+        self.stackedWidget.widget(0).message_view.append(html)
 
 
     # sending text in textedit to the send thread which sends to Server
@@ -357,7 +299,7 @@ class client_ui(QMainWindow, Ui_MainWindow):
         else:
             msg = message.strip()
             colors = ' '.join([client_ui.time_color, client_ui.username_color, client_ui.message_color, client_ui.background_color])
-            msg = ' '.join([colors, msg]) # format = 'timecolor namecolor msgcolor message'
+            msg = ' '.join([self.username, colors, msg]) # format = 'timecolor namecolor msgcolor message'
 
             token = self.encryption.encrypt_message(msg)
 
