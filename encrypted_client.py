@@ -57,7 +57,45 @@ import time
 #     session.close()
 # #=========================================
 
+import base64
+import os
+from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+
+class Encrypt():
+    def __init__(self):
+        config = configparser.ConfigParser()
+        config.read('chat.ini')
+
+        password = config['Keys']['password']
+        password = password.encode('utf-8') # needs to be in bytes
+        salt = config['Keys']['salt']
+        salt = salt.encode('utf-8') # converts the string into bytes
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=100000,
+            backend=default_backend()
+        )
+        key = base64.urlsafe_b64encode(kdf.derive(password))
+        self.f = Fernet(key)
+        # print(key)
+        #token = f.encrypt(b"Secret message!")
+        #f.decrypt(token)
+        #b'Secret message!
+
+    def encrypt_message(self, message):
+        message = message.encode('utf-8')
+        token  = self.f.encrypt(message)
+        return token
+
+    def decrypt_message(self, token):
+        message = self.f.decrypt(token)
+        return message
 
 
 class MessageWidget(QWidget, Ui_Form):
@@ -67,16 +105,16 @@ class MessageWidget(QWidget, Ui_Form):
 
 class send_thread(QThread):
     # def __init__(self, socket, data):
-    def __init__(self, socket, message):
+    def __init__(self, socket, token):
         self.s = socket
         # self.message = json.dumps(data)
-        self.message = message
+        self.token = token
         super().__init__()
 
     def run(self):
 
-        message = bytes(self.message, 'utf8')
-        self.s.send(message)
+        # message = bytes(self.message, 'utf8')
+        self.s.send(token)
 
 
 
@@ -115,9 +153,9 @@ class recv_thread(QThread):
                     else: # user is trying to inject json into the app (json can't load text)
                         raise json.decoder.JSONDecodeError # this will display the text to the screen
                 except json.decoder.JSONDecodeError:
-                    msg = packet.decode('utf8') # turns bytes into str
-                    self.sig.emit(msg)
-
+                    # msg = packet.decode('utf8') # turns bytes into str
+                    # self.sig.emit(msg)
+                    self.sig.emit(packet)
 
 
 
@@ -141,6 +179,9 @@ class client_ui(QMainWindow, Ui_MainWindow):
 
         # setup the user interface from Designer
         self.setupUi(self)
+
+        # setup the encryption class
+        self.encryption = Encrypt()
 
         # setup the colors dialog
         self.customize_colors = colors_ui(client_ui.time_color, client_ui.username_color, client_ui.message_color, client_ui.background_color)
@@ -236,7 +277,7 @@ class client_ui(QMainWindow, Ui_MainWindow):
 
 
     # max len of message can be 93*3 = 279
-    def post_messages(self, message):
+    def post_messages(self, packet):
         # tyring to format the text not worth it
         #
         # MAX_LEN = 93
@@ -279,6 +320,22 @@ class client_ui(QMainWindow, Ui_MainWindow):
         #     if len(message) >186:
         #         print('it got here')
         #     self.stackedWidget.widget(0).message_view.append(message)
+        timestamp = packet[-8:].decode('utf8')
+        encrypted_message = packet[:-8]
+
+        message = self.encryption.decrypt_message(encrypted_message)
+        message = message.decode('utf8')
+
+
+
+        # time_color = message[0]
+        # username_color = message[1]
+        # msg_color = message[2]
+        # background_color = message[3]
+        # msg = ' '.join(message[4:])
+
+        # message = f"<html><span style='background-color:{background_color}'><font color='{time_color}'>[{time_recieved}] </font><font color='{username_color}'>{username}: </font><font color='{msg_color}'>{msg}</font></span></html>"
+
 
 
         self.stackedWidget.widget(0).message_view.append(message)
@@ -301,7 +358,11 @@ class client_ui(QMainWindow, Ui_MainWindow):
             msg = message.strip()
             colors = ' '.join([client_ui.time_color, client_ui.username_color, client_ui.message_color, client_ui.background_color])
             msg = ' '.join([colors, msg]) # format = 'timecolor namecolor msgcolor message'
-            self.thread_send = send_thread(self.s, msg)
+
+            token = self.encryption.encrypt_message(msg)
+
+            # start the sending thread
+            self.thread_send = send_thread(self.s, token)
             self.thread_send.start()
             self.stackedWidget.widget(0).message_textEdit.clear()
 
