@@ -7,7 +7,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 
 import configparser
 import json
-
+import datetime
 
 
 # pyuic5 design code for UI
@@ -63,12 +63,13 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import cryptography
 
 
 class Encrypt():
     def __init__(self):
         config = configparser.ConfigParser()
-        config.read('chat.ini')
+        config.read('encrypted_chat.ini')
 
         password = config['Keys']['password']
         password = password.encode('utf-8') # needs to be in bytes
@@ -81,16 +82,22 @@ class Encrypt():
             iterations=100000,
             backend=default_backend()
         )
+        # key that is used to encrypt message sent from user to user: server sends out
         key = base64.urlsafe_b64encode(kdf.derive(password))
         self.f = Fernet(key)
-        # print(key)
-        #token = f.encrypt(b"Secret message!")
-        #f.decrypt(token)
-        #b'Secret message!
+
+        # key that is used to by server to show who is logged on and who has left chat
+        server_key = config['Keys']['server'].encode('utf-8')
+        self.f_server = Fernet(server_key)
 
     def encrypt_message(self, message):
         message = message.encode('utf-8')
         token  = self.f.encrypt(message)
+        return token
+
+    def encrypt_for_server(self, message):
+        message = message.encode('utf-8')
+        token = self.f_server.encrypt(message)
         return token
 
     def decrypt_message(self, token):
@@ -98,15 +105,24 @@ class Encrypt():
             message = self.f.decrypt(token)
             return message
         except cryptography.fernet.InvalidToken:
-            return "problem decrypting"
+            # use the token for the server
+            try:
+                message = self.f_server.decrypt(token)
+                return message
+            except cryptography.fernet.InvalidToken: # someone messed with packet
+                return 'problem decrypting'
+
 
 class MessageWidget(QWidget, Ui_Form):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
 
+
 class send_thread(QThread):
     # def __init__(self, socket, data):
+    sig_disconnect = pyqtSignal(str)
+
     def __init__(self, socket, token):
         self.s = socket
         # self.message = json.dumps(data)
@@ -114,31 +130,43 @@ class send_thread(QThread):
         super().__init__()
 
     def run(self):
-        self.s.send(self.token)
-
+        try:
+            self.s.send(self.token)
+            #print('sent')
+        except:
+            self.sig_disconnect.emit("Connection Failed. Please Restart")
+            #print('error')
 
 
 class recv_thread(QThread):
     # sig = pyqtSignal(dict)
-    sig = pyqtSignal(bytes)
+    sig = pyqtSignal(str)
     sig2 = pyqtSignal(list)
     sig3 = pyqtSignal(str)
+    sig_disconnect_recv = pyqtSignal(str)
     #sig4 = pyqtSignal(dict)
     def __init__(self, socket): # , message_view):
         self.s = socket
-        #self.message_view = message_view
+        # setup the encryption class
+        self.encryption = Encrypt()
         super().__init__()
 
     def run(self):
-        # data = b''
         while True:
-            packet = self.s.recv(4096)
-            # data += packet
-            if not packet: # then the person has left
+            encrypted_message = self.s.recv(4096)
+            if not encrypted_message: # then the server is down
+                self.sig_disconnect_recv.emit("Connection Failed. Please Restart")
                 break
+
             else:
+                # %X Locale’s appropriate time representation. 07:06:05
+                timestamp = datetime.datetime.now().strftime("%X")
+
+                decrypted_message = self.encryption.decrypt_message(encrypted_message)
+                message_string = decrypted_message.decode('utf8') #string
+
                 try:
-                    data = json.loads(packet)
+                    data = json.loads(decrypted_message)
                     if isinstance(data, (list,)): # if contacts is a list
                         self.sig2.emit(data)
                     elif isinstance(data, (dict,)):
@@ -155,7 +183,8 @@ class recv_thread(QThread):
                 except json.decoder.JSONDecodeError:
                     # msg = packet.decode('utf8') # turns bytes into str
                     # self.sig.emit(msg)
-                    self.sig.emit(packet)
+                    message = timestamp + message_string
+                    self.sig.emit(message) # sent with encrypted portion with timestamp appended at the end
 
 
 
@@ -212,11 +241,11 @@ class client_ui(QMainWindow, Ui_MainWindow):
             self.stackedWidget.widget(number).message_view.setText("Socket Connection Failed")
             time.sleep(3)
             self.s.close()
-            print("you suck")
 
         # this should be if error the nquit and run all this anyways if not error
         if self.socket_error == False:
-            self.s.sendall(bytes(self.username, 'utf8')) # server will recieve the username
+            encrypted_username = self.encryption.encrypt_for_server(self.username)
+            self.s.sendall(encrypted_username) # server will recieve the encrypted_username
 
             # recieving socket threads with connected signals
             self.thread_recv = recv_thread(self.s) # self.message_view)
@@ -224,6 +253,7 @@ class client_ui(QMainWindow, Ui_MainWindow):
             self.thread_recv.sig.connect(self.post_messages)
             self.thread_recv.sig2.connect(self.post_users)
             self.thread_recv.sig3.connect(self.remove_users)
+            self.thread_recv.sig_disconnect_recv.connect(self.restart_prompt)
 
         # colors_dialog connected signal
         self.customize_colors.sig_colors.connect(self.change_colors)
@@ -233,6 +263,10 @@ class client_ui(QMainWindow, Ui_MainWindow):
         self.stackedWidget.widget(number).message_textEdit.returnPressed.connect(self.submit)
         # self.contacts_listWidget.itemDoubleClicked.connect(self.double_click)
 
+    def restart_prompt(self, message):
+        self.stackedWidget.widget(0).message_view.append(message)
+        self.socket_error = True
+        self.stackedWidget.widget(0).message_textEdit.setReadOnly(True)
 
     def change_colors(self, colors_list):
         client_ui.time_color = colors_list[0]
@@ -261,15 +295,14 @@ class client_ui(QMainWindow, Ui_MainWindow):
 
     # max len of message can be 93*3 = 279
     def post_messages(self, packet):
-        timestamp = packet[-8:].decode('utf8')
-        encrypted_message = packet[:-8]
+        timestamp = packet[:11]
+        msg = packet[11:]
 
-        message = self.encryption.decrypt_message(encrypted_message)
-        if message == 'problem decrypting'
+        if msg == 'problem decrypting':
             self.stackedWidget.widget(0).message_view.append("There was a problem decrypting the last message")
             return
-        message = message.decode('utf8')
-        message = message.strip().split()
+
+        message = msg.strip().split()
 
         username = message[0]
         time_color = message[1]
@@ -287,17 +320,16 @@ class client_ui(QMainWindow, Ui_MainWindow):
     def submit(self):
         message = self.stackedWidget.widget(0).message_textEdit.toPlainText()
         if self.socket_error == True:
-            # return
-            if not message.strip():
-                self.stackedWidget.widget(0).message_view.append(message)
-                return
-        elif not message.strip(): # removes whitespace & if no text
+            self.stackedWidget.widget(0).message_textEdit.setReadOnly(True)
+            return
+
+        elif not message.strip(): # removes whitespace & if no text makes sure someone can't just send spaces
             return
         elif len(message) > 200:
             print("the message is too long")
             return
         else:
-            msg = message.strip()
+            msg = message.strip() # gets rid of leading and trailing whitespace
             colors = ' '.join([client_ui.time_color, client_ui.username_color, client_ui.message_color, client_ui.background_color])
             msg = ' '.join([self.username, colors, msg]) # format = 'timecolor namecolor msgcolor message'
 
@@ -306,8 +338,8 @@ class client_ui(QMainWindow, Ui_MainWindow):
             # start the sending thread
             self.thread_send = send_thread(self.s, token)
             self.thread_send.start()
+            self.thread_send.sig_disconnect.connect(self.restart_prompt)
             self.stackedWidget.widget(0).message_textEdit.clear()
-
 
 
 if __name__ == "__main__":

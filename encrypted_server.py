@@ -5,7 +5,17 @@ from threading import Thread
 import pickle
 import json
 
+from cryptography.fernet import Fernet
+
+KEY = '_FgHRC9Fo9Az9E---pbjL6tpyu5UtOXA5Q7L3hxlOdE='
+#KEY_for_users =
+
+
+
+
+
 class Server():
+    key = bytes(KEY, 'utf8')
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
@@ -13,6 +23,7 @@ class Server():
 
     HOST = 'localhost'
     PORT = 12345
+
 
     def __init__(self):
         self.s.bind((self.HOST,self.PORT))
@@ -29,7 +40,8 @@ class Server():
             clientsocket, address = self.s.accept()
 
             print(str(address[0]), "on port:", str(address[1]), "connected")
-            username = clientsocket.recv(1024).decode('utf8')
+            encrypted_username = clientsocket.recv(1024)
+            username = self.decrypt_msg(encrypted_username).decode('utf8') # string
 
             self.connections_dict[username] = clientsocket
 
@@ -47,42 +59,54 @@ class Server():
     def handle_client(self, clientsocket, address, username):
         while True:
             data = clientsocket.recv(2048)
-            # %X Locale’s appropriate time representation. 07:06:05
-            time_recieved = datetime.datetime.now().strftime("%X")
 
             if not data: # then socket is closed and person left
                 print(username, "has disconnected")
                 self.connections_dict.pop(username, None)
-                name_fmt = '*'.rjust(10)
-                msg = f'[{time_recieved}]{name_fmt}: {username} has left the chat'
+
+                msg = f'*server* grey grey grey white {username} has left the chat' # format is username timecolor unmecolor msgcolor bckgcolor message
+                encrypted_message = self.encrypt_msg(msg)
 
                 alert = {username : False} # then person has left chat
                 for connection in self.connections_dict.values():
-                    connection.sendall(bytes(json.dumps(alert), 'utf8'))
+                    #
+                    encrypted_json = self.encrypt_msg(json.dumps(alert))
+                    connection.sendall(encrypted_json)
                     time.sleep(.1) # need break or else both merge together
-                    connection.sendall(bytes(msg, 'utf8'))
+
+                    connection.sendall(encrypted_message)
+
                 clientsocket.close()
                 break
             else:
-                time = bytes(time_recieved, 'utf8')
-                packet = data + time
                 for connection in list(self.connections_dict.values()):
-                    connection.sendall(packet)
-                    print(packet.decode('utf8'))
+                    connection.sendall(data)
 
 
     # for every new connection notify that the person has joined the chat
     def new_connection(self, username):
-        time_recieved = datetime.datetime.now().strftime("%X") # hr:min:s
         for connection in self.connections_dict.values():
-            connection.sendall(bytes(json.dumps(list(self.connections_dict.keys())), 'utf8'))
-            time.sleep(.1)
-            name_fmt = '*'.rjust(10)
-            msg = f'[{time_recieved}]{name_fmt}: {username} has joined the chat'
-            # msg = f'[{time_recieved}]{name_fmt}:  {username} has joined the chat'
-            # if connection !=
-            # connection.sendall(bytes(msg, 'utf8'))
+            # send the updated users list
+            encrypted_json = self.encrypt_msg(json.dumps(list(self.connections_dict.keys())))
+            #connection.sendall(bytes(json.dumps(list(self.connections_dict.keys())), 'utf8'))
+            connection.sendall(encrypted_json)
+            time.sleep(.2)
 
+            #send message
+            msg = f'*server* grey grey grey white {username} has joined the chat' # format is username timecolor unmecolor msgcolor bckgcolor message
+            encrypted_message = self.encrypt_msg(msg)
+
+            connection.sendall(encrypted_message)
+
+    def encrypt_msg(self, message):
+        f = Fernet(Server.key)
+        token = f.encrypt(bytes(message, 'utf8'))
+        return token
+
+    def decrypt_msg(self, token):
+        f = Fernet(Server.key)
+        message = f.decrypt(token) # message still in bytes
+        return message
 
 
 

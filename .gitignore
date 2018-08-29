@@ -2,3 +2,4 @@ mycomponent/__pycache__
 __pycache__
 venv
 app.db
+non_encryption_files/
